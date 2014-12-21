@@ -1,0 +1,146 @@
+# My baby steps in Coursera:
+# 1:
+pollutantmean <- function(directory, pollutant, id = 1:332) 
+    {
+    #get the name of the file to read.
+    name <- formatC(id[1], width=3, flag="0")
+    #add path to the filename.
+    filename  = paste(getwd(), directory, name, sep = "/")
+    #add csv extension to the filename.
+    filename1 = paste(filename, "csv", sep = ".")
+    #read the file in a data frame.
+    tablelast <- read.csv(file = filename1)
+  
+    #if there are more than 1 file to read append all in one file.
+    if (length(id) > 1) 
+    {
+        for (i in id[2]:max(id))
+        {
+            name <- formatC(i, width=3, flag="0")
+            filename  = paste(directory, name, sep = "/")
+            filename1 = paste(filename, "csv", sep = ".")
+            tabletemp <- read.csv(file = filename1)
+            tablelast <- rbind(tablelast, tabletemp)
+        }
+    }
+    #get the variable to analyse.
+    selected <- tablelast[, pollutant]
+    #select the non-missings.
+    subset <- selected[is.na(selected)==FALSE]
+    #return mean of non-missings.
+    #mean(x, na.rm=TRUE) 
+    return(mean(subset))
+    }
+    
+    #2:
+    complete <- function(directory, id=1:332) 
+{
+    z <- matrix(NA, nrow=length(id), ncol=2, dimnames=list(1:length(id),c("id", "nobs")))
+    for (i in 1:length(id)) 
+    {
+        name <- formatC(id[i], width=3, flag="0")
+        filename  = paste(getwd(), directory, name, sep = "/")
+        filename1 = paste(filename, "csv", sep = ".")
+        table <- read.csv(file = filename1)
+        
+        x <- is.na(table)
+        y <- matrix(0, nrow=length(x), ncol=1)
+        for (j in 1:nrow(x)){
+           y[j] <- (sum(x[j,])==0)
+        }
+        z[i,1]<- id[i]
+        z[i,2]<- sum(y)
+    }
+    t <- as.data.frame(z)
+    return(t)
+}
+
+#3:
+corr <- function(directory, threshold = 0) 
+{
+    mycorr <- numeric()
+    first <- 1
+    for (i in 1:332) 
+    {
+        if (complete(directory, i)[1,2] > threshold && first == 1) {
+            name <- formatC(i, width=3, flag="0")
+            rwork=getwd()
+            filename  = paste(rwork, directory, name, sep = "/")
+            filename1 = paste(filename, "csv", sep = ".")
+            table <- read.csv(file = filename1)
+            mycorr <- cor(table$sulfate, table$nitrate, use="pairwise.complete.obs")
+            first <- 0
+        }
+        else if (complete(directory, i)[1,2] > threshold) { 
+            name <- formatC(i, width=3, flag="0")
+            rwork=getwd()
+            filename  = paste(rwork, directory, name, sep = "/")
+            filename1 = paste(filename, "csv", sep = ".")
+            table <- read.csv(file = filename1)
+            mycorr <- cbind(mycorr, cor(table$sulfate, table$nitrate,use="pairwise.complete.obs"))
+        }    
+    }
+    return (as.vector(mycorr))
+}
+
+#4:
+makeVector  <- function (x=numeric()) {
+    
+    m <- NULL
+    reset   <- function () m <<- NULL
+    get     <- function () x
+    setmean <- function (mean) m <<- mean
+    getmean <- function () m 
+    list (reset = reset, get = get, setmean = setmean, getmean = getmean)
+}
+
+cachemean <- function (x, reset=0) {
+    
+    if (reset == 1) x$reset()
+    out <- x$getmean()
+    if (!is.null(out) ){
+        message("return cached value")
+        return(out)
+    }
+    message("return new value")
+    data <- x$get()
+    out <- mean(data)
+    x$setmean(out)
+    out
+}
+
+#5:
+## This R code computes the inverse of a matrix and caches the value to return rather than computing it repeatedly. 
+
+## This function creates a special "matrix" object that can cache its inverse.
+makeCacheMatrix  <- function (x=matrix()) {
+    inv     <- NULL
+    set     <- function (y) { x <<- y 
+                              m <<- NULL }
+    get     <- function () x
+    setinv  <- function (imatrix) inv <<- imatrix
+    getinv  <- function () inv 
+    list (get = get, setinv = setinv, getinv = getinv)
+}
+
+## This function computes the inverse of the special "matrix" returned by makeCacheMatrix. If the inverse has already been calculated 
+## (and the matrix has not changed), then the cacheSolve retrieves the inverse from the cache.
+cacheSolve <- function (x, ... ) {
+    out <- x$getinv()
+    if (!is.null(out)){
+        message("returned cached value")
+        return(out)
+    }
+    message("returned new computation")
+    data <- x$get()
+    out <- solve(data, ...)
+    x$setinv(out)
+    out
+}
+
+# rm(list = ls())
+# source("./solve.R")
+# mymat <- makeCacheMatrix(matrix(1:4, nrow=2, ncol=2))
+# cacheSolve(mymat)
+
+## END OF FILE ##
